@@ -1,0 +1,70 @@
+#!/usr/bin/env ruby
+
+require 'dotenv/load'
+require 'mqtt'
+require 'rqrcode'
+
+module ZerkQR
+  class MQTTClient
+    def initialize
+      if ENV['MQTT_HOST'].nil? || ENV['MQTT_PORT'].nil? || ENV['MQTT_TOPIC'].nil?
+        puts 'MQTT_HOST, MQTT_PORT, and MQTT_TOPIC must be set in .env file'
+        puts 'Optionally MQTT_USERNAME and MQTT_PASSWORD can be set in .env file'
+        exit
+      end
+      if ENV['MQTT_USERNAME'].nil? || ENV['MQTT_PASSWORD'].nil?
+        @client = MQTT::Client.connect(
+          host: ENV['MQTT_HOST'],
+          port: ENV['MQTT_PORT']
+        )
+      else
+        @client = MQTT::Client.connect(
+          host: ENV['MQTT_HOST'],
+          port: ENV['MQTT_PORT'],
+          username: ENV['MQTT_USERNAME'],
+          password: ENV['MQTT_PASSWORD']
+        )
+      end
+    end
+    
+    def start_listening
+      @client.subscribe(ENV['MQTT_TOPIC'])
+      @client.get do |topic, message|
+        puts "Received message on #{topic}: #{message}"
+        generate_qr(message)
+      end
+    end
+    
+    private
+
+    def generate_qr(message)
+      if message.length > 60
+        puts "Message is too long to display - chopping to 60"
+        puts message
+        sleep 1
+        message = "<60"
+      end
+      qr = RQRCode::QRCode.new(message)
+      svg = qr.as_ansi(
+        light: "\033[47m", dark: "\033[40m",
+        fill_character: '  ',
+        quiet_zone_size: 4
+      ) 
+      system("clear")
+      puts svg
+      puts message
+    end
+  end
+
+  def self.run
+    zerkqr = ZerkQR::MQTTClient.new
+    zerkqr.start_listening
+  end
+end
+
+if $PROGRAM_NAME == __FILE__
+  puts "mqtt://#{ENV['MQTT_HOST']}:#{ENV['MQTT_PORT']}/#{ENV['MQTT_TOPIC']}"
+  ZerkQR.run
+end 
+# require_relative 'zerkqr'
+# ZerkQR.run

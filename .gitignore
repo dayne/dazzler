@@ -1,0 +1,8 @@
+# Ignore generated Gemfile.lock
+Gemfile.lock
+
+# Ignore OS or editor-specific files
+*.swp
+*.swo
+/.DS_Store
+/Thumbs.db

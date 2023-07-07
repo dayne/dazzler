@@ -17,3 +17,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MVP proof of concept of flabert working (with MQTT!)
 - README.md (no secrets shared yet)
 - CHANGELOG.md (this file - how meta!)
+- zerkqr demo
