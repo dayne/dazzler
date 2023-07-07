@@ -1,0 +1,87 @@
+#!/usr/bin/env ruby
+######
+require 'timeout'
+require 'yaml'
+require 'mqtt'
+
+
+yaml_config = ARGV.shift || "ex-cmd.yaml"
+$verbose = false
+$prog_pid = nil
+cfg = YAML.load_file(yaml_config)
+
+mqtt_host = cfg["mqtt_host"]
+mqtt_port = cfg["mqtt_port"]
+mqtt_topic = cfg["flabert_topic"]
+
+puts "mqtt://#{mqtt_host}:#{mqtt_port}/#{mqtt_topic}"
+sleep 0.2
+
+$commands = cfg["keyword"]
+$threads = [ ]
+
+#######
+def run_prog(c, timeout=60)
+  kill_prog
+  pid = fork do
+    system("clear")
+    exec c
+  end
+  $prog_pid = pid
+  
+  # Wait for the program to finish or timeout
+  t = Thread.new do
+    begin
+      Timeout::timeout(timeout) do
+          Process.waitpid(pid)
+      end
+      puts "Program finished" if $verbose
+      $prog_pid = nil
+    rescue Timeout::Error
+      puts "Timeout, killing program"
+      Process.kill("TERM", pid)
+      $prog_pid = nil
+    end
+  end
+end
+
+def kill_prog
+  begin
+    if $prog_pid
+      Process.kill("TERM",$prog_pid)
+    else
+      puts "no death for you: kill_prog when $prog_pid is nill"
+    end
+  rescue => e 
+    puts "Exception #{e} when killing prog"
+    exit 1
+  else
+    puts "killed program with PID #{$prog_pid}"
+  end
+  $prog_pid = nil
+end
+
+#######
+def handle_message(keyword)
+  system("clear")
+  puts "Received keyword: #{keyword}"
+  target = $commands[keyword]
+  if target
+    puts "keyword loaded #{target.inspect}"
+    run_prog(target["cmd"],target["timeout"]) 
+  elsif keyword == "death"
+    puts "$threads.count = #{$threads.size}"
+    puts "killing prog"
+    kill_prog
+  else
+    puts "404: #{keyword} not associated with a command"
+  end
+end
+
+#######
+# MQTT message listener
+MQTT::Client.connect(host: mqtt_host, port: mqtt_port) do |client|
+  client.get(mqtt_topic)  do |topic, message|
+    handle_message(message)
+  end
+end

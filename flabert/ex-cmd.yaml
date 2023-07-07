@@ -1,0 +1,18 @@
+mqtt_host: localhost
+mqtt_port: 1883
+flabert_topic: dazzler/flabert
+keyword:
+  train:
+    cmd: sl
+    timeout: 10
+  matrix:
+    cmd: cmatrix
+    timeout: 30
+  top:
+    cmd: htop
+    timeout: 20
+  fortune:
+    cmd: fortune | cowsay
+  offend:
+    cmd: fortune -o | cowsay
+cowsay:
