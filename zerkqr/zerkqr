@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+#This zerkqr code received development assistance from GitHub CoPilot
 
 require 'dotenv/load'
 require 'mqtt'
